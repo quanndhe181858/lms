@@ -198,8 +198,14 @@ INSERT INTO users (id, email, password_hash, full_name, department_id, manager_i
 (2, 'david.manager@lms.local', '$2a$12$2rgPF3EtsVfRrvYWvGDMDeSAVlfCEUiFdsC.N/jpZMisOy71UYrNy', 'David Manager', 1, 1, 'ROLE_MANAGER', 'PERMANENT', '2024-03-01', TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 (3, 'sarah.engineer@lms.local', '$2a$12$2rgPF3EtsVfRrvYWvGDMDeSAVlfCEUiFdsC.N/jpZMisOy71UYrNy', 'Sarah Engineer', 1, 2, 'ROLE_EMPLOYEE', 'PERMANENT', '2024-06-01', TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 (4, 'nhanvien@lms.local', '$2a$12$2rgPF3EtsVfRrvYWvGDMDeSAVlfCEUiFdsC.N/jpZMisOy71UYrNy', 'Nguyễn Thảo My', 3, 5, 'ROLE_EMPLOYEE', 'PERMANENT', '2024-02-15', TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-(5, 'quanly@lms.local', '$2a$12$2rgPF3EtsVfRrvYWvGDMDeSAVlfCEUiFdsC.N/jpZMisOy71UYrNy', 'Trần Minh Quân', 2, 1, 'ROLE_MANAGER', 'PERMANENT', '2024-01-10', TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-(6, 'hr@lms.local', '$2a$12$2rgPF3EtsVfRrvYWvGDMDeSAVlfCEUiFdsC.N/jpZMisOy71UYrNy', 'Phạm Hoài Nhi', 2, 1, 'ROLE_HR_ADMIN', 'PERMANENT', '2024-01-05', TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+(5, 'quanly@lms.local', '$2a$12$2rgPF3EtsVfRrvYWvGDMDeSAVlfCEUiFdsC.N/jpZMisOy71UYrNy', 'Trần Minh Quân', 3, 1, 'ROLE_MANAGER', 'PERMANENT', '2024-01-10', TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(6, 'hr@lms.local', '$2a$12$2rgPF3EtsVfRrvYWvGDMDeSAVlfCEUiFdsC.N/jpZMisOy71UYrNy', 'Phạm Hoài Nhi', 2, 1, 'ROLE_HR_ADMIN', 'PERMANENT', '2024-01-05', TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(7, 'nam.it@lms.local', '$2a$12$2rgPF3EtsVfRrvYWvGDMDeSAVlfCEUiFdsC.N/jpZMisOy71UYrNy', 'Vũ Hoàng Nam', 1, 2, 'ROLE_EMPLOYEE', 'PERMANENT', '2024-03-15', TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(8, 'minh.tester@lms.local', '$2a$12$2rgPF3EtsVfRrvYWvGDMDeSAVlfCEUiFdsC.N/jpZMisOy71UYrNy', 'Đặng Quang Minh', 1, 2, 'ROLE_EMPLOYEE', 'PERMANENT', '2024-05-01', TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(9, 'hoa.cskh@lms.local', '$2a$12$2rgPF3EtsVfRrvYWvGDMDeSAVlfCEUiFdsC.N/jpZMisOy71UYrNy', 'Nguyễn Thị Mai Hoa', 3, 5, 'ROLE_EMPLOYEE', 'PERMANENT', '2024-04-10', TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(10, 'hai.sales@lms.local', '$2a$12$2rgPF3EtsVfRrvYWvGDMDeSAVlfCEUiFdsC.N/jpZMisOy71UYrNy', 'Trần Đức Hải', 3, 5, 'ROLE_EMPLOYEE', 'PERMANENT', '2024-06-20', TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(11, 'ha.hr@lms.local', '$2a$12$2rgPF3EtsVfRrvYWvGDMDeSAVlfCEUiFdsC.N/jpZMisOy71UYrNy', 'Lê Thanh Hà', 2, 6, 'ROLE_EMPLOYEE', 'PERMANENT', '2024-02-01', TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(12, 'tuan.lead@lms.local', '$2a$12$2rgPF3EtsVfRrvYWvGDMDeSAVlfCEUiFdsC.N/jpZMisOy71UYrNy', 'Lê Anh Tuấn', 1, 2, 'ROLE_MANAGER', 'PERMANENT', '2024-01-15', TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
 UPDATE departments SET head_user_id = 2 WHERE id = 1;
 UPDATE departments SET head_user_id = 1 WHERE id = 2;
@@ -225,7 +231,19 @@ INSERT INTO leave_balances (user_id, leave_type_id, accrued_days, carried_over_d
 (5, 1, 12.00, 3.00, 0.00, 0.00, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 (5, 2, 10.00, 0.00, 0.00, 0.00, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 (6, 1, 12.00, 0.00, 0.00, 0.00, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-(6, 2, 10.00, 0.00, 0.00, 0.00, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+(6, 2, 10.00, 0.00, 0.00, 0.00, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(7, 1, 12.00, 2.00, 0.00, 2.00, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(7, 2, 10.00, 0.00, 0.00, 0.00, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(8, 1, 12.00, 0.00, 0.00, 0.00, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(8, 2, 10.00, 0.00, 1.00, 0.00, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(9, 1, 12.00, 1.00, 0.00, 0.00, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(9, 2, 10.00, 0.00, 0.00, 1.00, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(10, 1, 12.00, 2.00, 3.00, 0.00, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(10, 2, 10.00, 0.00, 0.00, 0.00, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(11, 1, 12.00, 0.00, 0.00, 0.00, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(11, 2, 10.00, 0.00, 0.00, 0.00, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(12, 1, 12.00, 3.00, 0.00, 2.00, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(12, 2, 10.00, 0.00, 0.00, 0.00, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
 -- Seed Public Holidays
 INSERT INTO public_holidays (holiday_date, name, calendar_year, description) VALUES
@@ -236,4 +254,10 @@ INSERT INTO public_holidays (holiday_date, name, calendar_year, description) VAL
 -- Seed Sample Leave Requests
 INSERT INTO leave_requests (request_uuid, idempotency_key, user_id, leave_type_id, start_date, end_date, start_half, end_half, total_billable_days, reason, attachment_id, status, assigned_approver_id, rejection_reason, is_backdated, reminder_sent, submitted_at, escalated_at, resolved_at, created_at, updated_at) VALUES
 ('req-uuid-001', 'idem-key-001', 3, 1, '2026-10-10', '2026-10-12', 'MORNING', 'AFTERNOON', 3.00, 'Nghỉ phép gia đình', NULL, 'SUBMITTED', 2, NULL, FALSE, FALSE, CURRENT_TIMESTAMP, NULL, NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-('req-uuid-002', 'idem-key-002', 4, 2, '2026-10-01', '2026-10-02', 'MORNING', 'AFTERNOON', 2.00, 'Nghỉ ốm có xác nhận y tế', NULL, 'APPROVED', 5, NULL, FALSE, FALSE, CURRENT_TIMESTAMP, NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+('req-uuid-002', 'idem-key-002', 4, 2, '2026-10-01', '2026-10-02', 'MORNING', 'AFTERNOON', 2.00, 'Nghỉ ốm có xác nhận y tế', NULL, 'APPROVED', 5, NULL, FALSE, FALSE, CURRENT_TIMESTAMP, NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('req-uuid-006', 'idem-key-006', 7, 1, '2026-10-08', '2026-10-09', 'MORNING', 'AFTERNOON', 2.00, 'Nghỉ giải quyết việc riêng gia đình', NULL, 'SUBMITTED', 2, NULL, FALSE, FALSE, CURRENT_TIMESTAMP, NULL, NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('req-uuid-007', 'idem-key-007', 9, 2, '2026-10-09', '2026-10-09', 'MORNING', 'AFTERNOON', 1.00, 'Khám sức khỏe tổng quát theo lịch viện', NULL, 'SUBMITTED', 5, NULL, FALSE, FALSE, CURRENT_TIMESTAMP, NULL, NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('req-uuid-008', 'idem-key-008', 10, 1, '2026-10-12', '2026-10-14', 'MORNING', 'AFTERNOON', 3.00, 'Nghỉ phép thường niên kết hợp du lịch gia đình', NULL, 'APPROVED', 5, NULL, FALSE, FALSE, CURRENT_TIMESTAMP, NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('req-uuid-009', 'idem-key-009', 8, 2, '2026-10-07', '2026-10-07', 'MORNING', 'AFTERNOON', 1.00, 'Nghỉ ốm sốt vi-rút nhẹ', NULL, 'APPROVED', 2, NULL, FALSE, FALSE, CURRENT_TIMESTAMP, NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('req-uuid-010', 'idem-key-010', 12, 1, '2026-10-15', '2026-10-16', 'MORNING', 'AFTERNOON', 2.00, 'Tham gia hội thảo công nghệ Tech Summit 2026', NULL, 'SUBMITTED', 2, NULL, FALSE, FALSE, CURRENT_TIMESTAMP, NULL, NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+

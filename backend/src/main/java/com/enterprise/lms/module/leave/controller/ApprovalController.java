@@ -29,18 +29,64 @@ public class ApprovalController {
 
     private final ApprovalService approvalService;
     private final UserRepository userRepository;
+    private final com.enterprise.lms.module.leave.repository.LeaveTypeRepository leaveTypeRepository;
 
     @GetMapping
     @PreAuthorize("hasAnyRole('MANAGER', 'HR_ADMIN')")
-    public ResponseEntity<List<LeaveRequest>> getPendingApprovals(
+    public ResponseEntity<List<java.util.Map<String, Object>>> getPendingApprovals(
             @AuthenticationPrincipal UserDetails principal
     ) {
         User user = userRepository.findByEmail(principal.getUsername())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "USER_NOT_FOUND"));
+
+        List<LeaveRequest> requests;
         if (user.getRole() == com.enterprise.lms.module.user.entity.Role.ROLE_HR_ADMIN) {
-            return ResponseEntity.ok(approvalService.getAllPendingApprovals());
+            requests = approvalService.getAllPendingApprovals();
+        } else {
+            requests = approvalService.getPendingApprovals(user.getId());
         }
-        return ResponseEntity.ok(approvalService.getPendingApprovals(user.getId()));
+
+        List<Long> userIds = requests.stream().map(LeaveRequest::getUserId).distinct().collect(java.util.stream.Collectors.toList());
+        java.util.Map<Long, User> userMap = userRepository.findAllById(userIds).stream()
+                .collect(java.util.stream.Collectors.toMap(User::getId, java.util.function.Function.identity()));
+
+        java.util.Map<Long, com.enterprise.lms.module.leave.entity.LeaveType> leaveTypeMap = leaveTypeRepository.findAll().stream()
+                .collect(java.util.stream.Collectors.toMap(com.enterprise.lms.module.leave.entity.LeaveType::getId, java.util.function.Function.identity()));
+
+        List<java.util.Map<String, Object>> response = requests.stream().map(r -> {
+            java.util.Map<String, Object> map = new java.util.LinkedHashMap<>();
+            map.put("id", r.getId());
+            map.put("requestUuid", r.getRequestUuid());
+            map.put("userId", r.getUserId());
+            map.put("leaveTypeId", r.getLeaveTypeId());
+            map.put("startDate", r.getStartDate());
+            map.put("endDate", r.getEndDate());
+            map.put("startHalf", r.getStartHalf());
+            map.put("endHalf", r.getEndHalf());
+            map.put("totalBillableDays", r.getTotalBillableDays());
+            map.put("reason", r.getReason());
+            map.put("status", r.getStatus());
+            map.put("assignedApproverId", r.getAssignedApproverId());
+            map.put("isBackdated", r.isBackdated());
+            map.put("backdated", r.isBackdated());
+            map.put("submittedAt", r.getSubmittedAt());
+
+            User requester = userMap.get(r.getUserId());
+            if (requester != null) {
+                map.put("requesterName", requester.getFullName());
+                map.put("requesterEmail", requester.getEmail());
+                map.put("departmentName", requester.getDepartment() != null ? requester.getDepartment().getName() : "");
+            }
+
+            com.enterprise.lms.module.leave.entity.LeaveType lt = leaveTypeMap.get(r.getLeaveTypeId());
+            if (lt != null) {
+                map.put("leaveTypeName", lt.getName());
+            }
+
+            return map;
+        }).collect(java.util.stream.Collectors.toList());
+
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/{id}/act")

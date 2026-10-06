@@ -841,6 +841,9 @@ function ApprovalPage() {
   const [approvals, setApprovals] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const [actionLoading, setActionLoading] = useState<number | null>(null)
+  const [rejectModalOpen, setRejectModalOpen] = useState(false)
+  const [rejectTargetId, setRejectTargetId] = useState<number | null>(null)
+  const [rejectReason, setRejectReason] = useState('')
 
   const loadApprovals = async () => {
     setLoading(true)
@@ -861,21 +864,26 @@ function ApprovalPage() {
     loadApprovals()
   }, [])
 
-  const handleDecision = async (id: number, decision: 'APPROVE' | 'REJECT') => {
+  const handleDecision = async (id: number, decision: 'APPROVE' | 'REJECT', customReason?: string) => {
     setActionLoading(id)
     try {
       const res = await apiFetch(`/approvals/${id}/act`, {
         method: 'POST',
         body: JSON.stringify({
           decision,
-          decisionReason: decision === 'APPROVE' ? 'Đã phê duyệt qua hệ thống' : 'Từ chối yêu cầu nghỉ phép',
+          decisionReason: decision === 'APPROVE' 
+            ? 'Đã phê duyệt qua hệ thống' 
+            : (customReason?.trim() || 'Từ chối yêu cầu nghỉ phép'),
         }),
       })
       if (!res.ok) {
         const err = await res.json().catch(() => null)
         throw new Error(err?.message || 'Thao tác không thành công.')
       }
-      message.success(decision === 'APPROVE' ? 'Đã phê duyệt yêu cầu!' : 'Đã từ chối yêu cầu.')
+      message.success(decision === 'APPROVE' ? 'Đã phê duyệt yêu cầu thành công!' : 'Đã từ chối yêu cầu.')
+      setRejectModalOpen(false)
+      setRejectReason('')
+      setRejectTargetId(null)
       await loadApprovals()
     } catch (err: any) {
       message.error(err.message || 'Lỗi xử lý')
@@ -884,9 +892,15 @@ function ApprovalPage() {
     }
   }
 
+  const openRejectModal = (id: number) => {
+    setRejectTargetId(id)
+    setRejectReason('')
+    setRejectModalOpen(true)
+  }
+
   const summaryCards = [
     { title: 'Yêu cầu chờ duyệt', value: String(approvals.length).padStart(2, '0'), tone: 'blue' },
-    { title: 'Khẩn cấp hôm nay', value: String(approvals.filter((a) => a.backdated).length).padStart(2, '0'), tone: 'gold' },
+    { title: 'Khẩn cấp / Quá hạn', value: String(approvals.filter((a) => a.backdated || a.isBackdated).length).padStart(2, '0'), tone: 'gold' },
     { title: 'Tăng cấp', value: String(approvals.filter((a) => a.status === 'ESCALATED').length).padStart(2, '0'), tone: 'red' },
   ]
 
@@ -895,7 +909,7 @@ function ApprovalPage() {
       <div className="dashboard-header">
         <div>
           <Title level={3} style={{ marginBottom: 4 }}>Phê duyệt nghỉ phép</Title>
-          <Text type="secondary">Danh sách ưu tiên cho nhân sự trực thuộc ({approvals.length} yêu cầu cần xử lý)</Text>
+          <Text type="secondary">Danh sách ưu tiên cần xử lý ({approvals.length} yêu cầu đang chờ)</Text>
         </div>
         <Button type="primary" onClick={loadApprovals} loading={loading}>Làm mới</Button>
       </div>
@@ -919,9 +933,10 @@ function ApprovalPage() {
 
       <Row gutter={[16, 16]}>
         {approvals.map((request) => {
-          const empName = USER_NAMES[request.userId] || `Nhân sự #${request.userId}`
-          const typeName = LEAVE_TYPE_NAME_MAP[request.leaveTypeId] || 'Nghỉ phép'
-          const isUrgent = request.backdated || request.status === 'ESCALATED'
+          const empName = request.requesterName || USER_NAMES[request.userId] || `Nhân sự #${request.userId}`
+          const deptName = request.departmentName || ''
+          const typeName = request.leaveTypeName || LEAVE_TYPE_NAME_MAP[request.leaveTypeId] || 'Nghỉ phép'
+          const isUrgent = request.backdated || request.isBackdated || request.status === 'ESCALATED'
 
           return (
             <Col xs={24} lg={12} key={request.id}>
@@ -930,9 +945,14 @@ function ApprovalPage() {
                   <div>
                     <Text type="secondary">REQ-#{request.id}</Text>
                     <Title level={4} style={{ margin: '4px 0 0' }}>{empName}</Title>
+                    {deptName && (
+                      <Text type="secondary" style={{ fontSize: 13, display: 'block', marginTop: 2 }}>
+                        {deptName}
+                      </Text>
+                    )}
                   </div>
                   <div className={`sla-pill ${isUrgent ? 'warning' : 'good'}`}>
-                    {request.status === 'ESCALATED' ? 'Tăng cấp' : request.backdated ? 'Khẩn cấp' : 'Bình thường'}
+                    {request.status === 'ESCALATED' ? 'Tăng cấp' : isUrgent ? 'Khẩn cấp' : 'Bình thường'}
                   </div>
                 </div>
 
@@ -974,7 +994,7 @@ function ApprovalPage() {
                   <Button
                     danger
                     loading={actionLoading === request.id}
-                    onClick={() => handleDecision(request.id, 'REJECT')}
+                    onClick={() => openRejectModal(request.id)}
                   >
                     Từ chối
                   </Button>
@@ -984,6 +1004,32 @@ function ApprovalPage() {
           )
         })}
       </Row>
+
+      <Modal
+        title="Lý do từ chối yêu cầu"
+        open={rejectModalOpen}
+        onOk={() => {
+          if (rejectTargetId) {
+            handleDecision(rejectTargetId, 'REJECT', rejectReason)
+          }
+        }}
+        onCancel={() => {
+          setRejectModalOpen(false)
+          setRejectReason('')
+          setRejectTargetId(null)
+        }}
+        okText="Xác nhận từ chối"
+        cancelText="Hủy"
+        okButtonProps={{ danger: true, loading: Boolean(actionLoading) }}
+      >
+        <p style={{ marginBottom: 8 }}>Vui lòng cung cấp lý do từ chối để nhân viên nắm rõ:</p>
+        <Input.TextArea
+          rows={3}
+          value={rejectReason}
+          onChange={(e) => setRejectReason(e.target.value)}
+          placeholder="Nhập lý do từ chối (ví dụ: Trùng lịch phát hành dự án quan trọng...)"
+        />
+      </Modal>
     </Space>
   )
 }
@@ -1022,19 +1068,6 @@ const INITIAL_MEMBERS: TeamMember[] = [
   { id: 8, name: 'Trần Minh Quân', initials: 'MQ', role: 'Quản lý Nhân sự & Vận hành', department: 'Phòng Nhân sự', employmentStatus: 'PERMANENT', status: 'Hoạt động' },
   { id: 9, name: 'Phạm Hoài Nhi', initials: 'HN', role: 'Chuyên viên Nhân sự cấp cao (HR Admin)', department: 'Phòng Nhân sự', employmentStatus: 'PERMANENT', status: 'Hoạt động' },
   { id: 10, name: 'Hoàng Mai Anh', initials: 'MA', role: 'Chuyên viên Tuyển dụng & Đãi ngộ', department: 'Phòng Nhân sự', employmentStatus: 'PERMANENT', status: 'Hoạt động' },
-]
-
-const INITIAL_SCHEDULE: LeaveScheduleEntry[] = [
-  { memberId: 2, name: 'Trần Quốc Bảo', initials: 'QB', role: 'Kỹ sư Frontend', department: 'Phòng Kỹ thuật', start: '2026-10-12', end: '2026-10-14', type: 'annual', status: 'pending', reason: 'Nghỉ việc gia đình' },
-  { memberId: 3, name: 'Lê Thu Hà', initials: 'TH', role: 'Chuyên viên UI/UX', department: 'Phòng Kỹ thuật', start: '2026-10-05', end: '2026-10-06', type: 'sick', status: 'pending', reason: 'Nghỉ khám sức khỏe định kỳ' },
-  { memberId: 4, name: 'Phạm Đức Long', initials: 'ĐL', role: 'Kỹ sư Backend', department: 'Phòng Kỹ thuật', start: '2026-10-08', end: '2026-10-09', type: 'remote', status: 'pending', reason: 'Làm việc từ xa hỗ trợ bảo trì' },
-  { memberId: 5, name: 'Nguyễn Hoàng Yến', initials: 'HY', role: 'Kỹ sư QA', department: 'Phòng Kỹ thuật', start: '2026-10-06', end: '2026-10-06', type: 'remote', status: 'approved', reason: 'Làm việc từ xa' },
-  { memberId: 6, name: 'Đỗ Khánh Linh', initials: 'KL', role: 'Chuyên viên Truyền thông', department: 'Phòng Vận hành', start: '2026-10-07', end: '2026-10-09', type: 'annual', status: 'approved', reason: 'Nghỉ phép năm đã được duyệt' },
-  { memberId: 7, name: 'Bùi Thanh Sơn', initials: 'TS', role: 'Kỹ sư DevOps', department: 'Phòng Kỹ thuật', start: '2026-10-13', end: '2026-10-13', type: 'sick', status: 'approved', reason: 'Nghỉ ốm phục hồi sau tiểu phẫu' },
-  { memberId: 1, name: 'Nguyễn Thảo My', initials: 'TM', role: 'Kỹ sư Frontend', department: 'Phòng Kỹ thuật', start: null, end: null, type: 'annual', status: 'approved' },
-  { memberId: 8, name: 'Trần Minh Quân', initials: 'MQ', role: 'Quản lý Nhân sự', department: 'Phòng Nhân sự', start: '2026-10-09', end: '2026-10-09', type: 'annual', status: 'approved', reason: 'Công tác đối ngoại' },
-  { memberId: 9, name: 'Phạm Hoài Nhi', initials: 'HN', role: 'HR Admin', department: 'Phòng Nhân sự', start: null, end: null, type: 'annual', status: 'approved' },
-  { memberId: 10, name: 'Hoàng Mai Anh', initials: 'MA', role: 'Chuyên viên Nhân sự', department: 'Phòng Nhân sự', start: '2026-10-14', end: '2026-10-15', type: 'annual', status: 'approved', reason: 'Nghỉ phép năm' },
 ]
 
 function getCurrentMonday(): Date {
@@ -1165,30 +1198,16 @@ function TeamCalendarPage() {
     })
   }, [members, selectedDept])
 
-  // Lập danh sách lịch làm việc tương ứng thành viên
-  const visibleSchedule = useMemo(() => {
-    return filteredMembers.map((member) => {
-      const match = schedules.find((s) => s.memberId === member.id)
-      if (match) {
-        return {
-          ...match,
-          role: member.role,
-          department: member.department,
-        }
-      }
-      return {
-        memberId: member.id,
-        name: member.name,
-        initials: member.initials,
-        role: member.role,
-        department: member.department,
-        start: null,
-        end: null,
-        type: 'annual' as const,
-        status: 'approved' as const,
-      }
-    })
-  }, [filteredMembers, schedules])
+  // Lập bản đồ lịch làm việc theo thành viên (hỗ trợ nhiều đơn nghỉ phép trong kỳ)
+  const memberSchedulesMap = useMemo(() => {
+    const map = new Map<number, LeaveScheduleEntry[]>()
+    for (const s of schedules) {
+      const list = map.get(s.memberId) || []
+      list.push(s)
+      map.set(s.memberId, list)
+    }
+    return map
+  }, [schedules])
 
   const dateFormatter = useMemo(() => new Intl.DateTimeFormat('vi-VN', { day: '2-digit', month: '2-digit' }), [])
   const weekdayLabels = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7']
@@ -1204,12 +1223,15 @@ function TeamCalendarPage() {
   const awayCounts = useMemo(() => {
     return scheduleDays.map((day) => {
       const dateStr = formatIsoDate(day)
-      return visibleSchedule.filter((entry) => {
-        if (!entry.start || !entry.end) return false
-        return entry.start <= dateStr && entry.end >= dateStr
-      }).length
+      const awayMemberIds = new Set(
+        schedules
+          .filter((entry) => entry.start && entry.end && entry.start <= dateStr && entry.end >= dateStr)
+          .filter((entry) => filteredMembers.some((m) => m.id === entry.memberId))
+          .map((entry) => entry.memberId)
+      )
+      return awayMemberIds.size
     })
-  }, [scheduleDays, visibleSchedule])
+  }, [scheduleDays, schedules, filteredMembers])
 
   const moveCalendar = (days: number) => {
     setCalendarStart((prev) => {
@@ -1276,25 +1298,18 @@ function TeamCalendarPage() {
             ))}
           </div>
 
-          {visibleSchedule.map((member) => {
-            const firstIndex = member.start ? scheduleDays.findIndex((day) => formatIsoDate(day) >= member.start!) : -1
-            const lastIndex = member.end ? scheduleDays.findLastIndex((day) => formatIsoDate(day) <= member.end!) : -1
-            const hasVisibleEntry = firstIndex >= 0 && lastIndex >= firstIndex
-            
-            // Mask reason based on privacy rules FR-10 / FR-14
-            const tooltipReason = isHrOrManager && member.reason ? ` · ${member.reason}` : ''
-            const statusLabel = member.status === 'pending' ? 'Chờ duyệt' : 'Đã duyệt'
-            const typeLabel =
-              member.type === 'annual'
-                ? 'Phép năm'
-                : member.type === 'sick'
-                ? 'Nghỉ ốm'
-                : member.type === 'remote'
-                ? 'Làm việc từ xa'
-                : 'Nghỉ cá nhân'
+          {filteredMembers.map((member) => {
+            const memberEntries = memberSchedulesMap.get(member.id) || []
+            const firstDateStr = scheduleDays.length > 0 ? formatIsoDate(scheduleDays[0]) : ''
+            const lastDateStr = scheduleDays.length > 0 ? formatIsoDate(scheduleDays[scheduleDays.length - 1]) : ''
+
+            const visibleEntries = memberEntries.filter((entry) => {
+              if (!entry.start || !entry.end) return false
+              return entry.start <= lastDateStr && entry.end >= firstDateStr
+            })
 
             return (
-              <div className="schedule-row schedule-member-row" role="row" key={`${member.memberId}-${member.name}`}>
+              <div className="schedule-row schedule-member-row" role="row" key={`${member.id}-${member.name}`}>
                 <div className="schedule-member" role="rowheader">
                   <span className="schedule-avatar" aria-hidden="true">{member.initials}</span>
                   <span className="schedule-member-copy">
@@ -1306,18 +1321,39 @@ function TeamCalendarPage() {
                   {scheduleDays.map((_, i) => (
                     <div key={i} className="schedule-col-cell" />
                   ))}
-                  {hasVisibleEntry ? (
-                    <div
-                      className={`schedule-bar leave-${member.type} ${member.status}`}
-                      style={{
-                        gridColumnStart: firstIndex + 1,
-                        gridColumnEnd: lastIndex + 2,
-                      }}
-                      title={`${member.name} · ${statusLabel}${tooltipReason}`}
-                    >
-                      {member.status === 'pending' && <ClockCircleOutlined />}
-                      <span>{typeLabel}</span>
-                    </div>
+                  {visibleEntries.length > 0 ? (
+                    visibleEntries.map((entry, idx) => {
+                      let firstIndex = scheduleDays.findIndex((day) => formatIsoDate(day) >= entry.start!)
+                      if (firstIndex < 0) firstIndex = 0
+                      let lastIndex = scheduleDays.findLastIndex((day) => formatIsoDate(day) <= entry.end!)
+                      if (lastIndex < 0) lastIndex = scheduleDays.length - 1
+
+                      const tooltipReason = isHrOrManager && entry.reason ? ` · ${entry.reason}` : ''
+                      const statusLabel = entry.status === 'pending' ? 'Chờ duyệt' : 'Đã duyệt'
+                      const typeLabel =
+                        entry.type === 'annual'
+                          ? 'Phép năm'
+                          : entry.type === 'sick'
+                          ? 'Nghỉ ốm'
+                          : entry.type === 'remote'
+                          ? 'Làm việc từ xa'
+                          : 'Nghỉ cá nhân'
+
+                      return (
+                        <div
+                          key={idx}
+                          className={`schedule-bar leave-${entry.type} ${entry.status}`}
+                          style={{
+                            gridColumnStart: firstIndex + 1,
+                            gridColumnEnd: lastIndex + 2,
+                          }}
+                          title={`${member.name} · ${statusLabel}${tooltipReason}`}
+                        >
+                          {entry.status === 'pending' && <ClockCircleOutlined />}
+                          <span>{typeLabel}</span>
+                        </div>
+                      )
+                    })
                   ) : (
                     <span className="schedule-present">Có mặt cả kỳ</span>
                   )}
