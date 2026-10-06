@@ -2,6 +2,9 @@ package com.enterprise.lms.module.leave.service;
 
 import com.enterprise.lms.module.leave.entity.LeaveRequest;
 import com.enterprise.lms.module.leave.repository.LeaveRequestRepository;
+import com.enterprise.lms.module.user.entity.Role;
+import com.enterprise.lms.module.user.entity.User;
+import com.enterprise.lms.module.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -18,9 +21,14 @@ public class ApprovalService {
     private final LeaveRequestRepository leaveRequestRepository;
     private final LeaveBalanceService leaveBalanceService;
     private final AuditLogService auditLogService;
+    private final UserRepository userRepository;
 
     public List<LeaveRequest> getPendingApprovals(Long managerId) {
         return leaveRequestRepository.findByAssignedApproverIdAndStatusIn(managerId, List.of(LeaveRequest.Status.SUBMITTED, LeaveRequest.Status.ESCALATED));
+    }
+
+    public List<LeaveRequest> getAllPendingApprovals() {
+        return leaveRequestRepository.findByStatusIn(List.of(LeaveRequest.Status.SUBMITTED, LeaveRequest.Status.ESCALATED));
     }
 
     @Transactional
@@ -28,7 +36,10 @@ public class ApprovalService {
         LeaveRequest request = leaveRequestRepository.findById(requestId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "REQUEST_NOT_FOUND"));
 
-        if (!managerId.equals(request.getAssignedApproverId())) {
+        User approver = userRepository.findById(managerId).orElse(null);
+        boolean isHrAdmin = approver != null && approver.getRole() == Role.ROLE_HR_ADMIN;
+
+        if (!managerId.equals(request.getAssignedApproverId()) && !isHrAdmin) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "NOT_ASSIGNED_APPROVER");
         }
 

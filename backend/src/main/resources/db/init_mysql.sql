@@ -197,7 +197,7 @@ INSERT INTO users (id, email, password_hash, full_name, department_id, manager_i
 (1, 'admin@lms.local', '$2a$12$2rgPF3EtsVfRrvYWvGDMDeSAVlfCEUiFdsC.N/jpZMisOy71UYrNy', 'System Admin', 2, NULL, 'ROLE_HR_ADMIN', 'PERMANENT', '2024-01-01', TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 (2, 'david.manager@lms.local', '$2a$12$2rgPF3EtsVfRrvYWvGDMDeSAVlfCEUiFdsC.N/jpZMisOy71UYrNy', 'David Manager', 1, 1, 'ROLE_MANAGER', 'PERMANENT', '2024-03-01', TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 (3, 'sarah.engineer@lms.local', '$2a$12$2rgPF3EtsVfRrvYWvGDMDeSAVlfCEUiFdsC.N/jpZMisOy71UYrNy', 'Sarah Engineer', 1, 2, 'ROLE_EMPLOYEE', 'PERMANENT', '2024-06-01', TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-(4, 'nhanvien@lms.local', '$2a$12$2rgPF3EtsVfRrvYWvGDMDeSAVlfCEUiFdsC.N/jpZMisOy71UYrNy', 'Nguyễn Thảo My', 3, 2, 'ROLE_EMPLOYEE', 'PERMANENT', '2024-02-15', TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(4, 'nhanvien@lms.local', '$2a$12$2rgPF3EtsVfRrvYWvGDMDeSAVlfCEUiFdsC.N/jpZMisOy71UYrNy', 'Nguyễn Thảo My', 3, 5, 'ROLE_EMPLOYEE', 'PERMANENT', '2024-02-15', TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 (5, 'quanly@lms.local', '$2a$12$2rgPF3EtsVfRrvYWvGDMDeSAVlfCEUiFdsC.N/jpZMisOy71UYrNy', 'Trần Minh Quân', 2, 1, 'ROLE_MANAGER', 'PERMANENT', '2024-01-10', TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 (6, 'hr@lms.local', '$2a$12$2rgPF3EtsVfRrvYWvGDMDeSAVlfCEUiFdsC.N/jpZMisOy71UYrNy', 'Phạm Hoài Nhi', 2, 1, 'ROLE_HR_ADMIN', 'PERMANENT', '2024-01-05', TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 

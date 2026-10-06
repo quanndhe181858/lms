@@ -22,6 +22,10 @@ public class LeaveBalanceService {
     public BigDecimal reserveBalance(Long userId, Long leaveTypeId, BigDecimal requestedDays, Long actorUserId, Long requestId) {
         validateRequestedDays(requestedDays);
 
+        if (Long.valueOf(3L).equals(leaveTypeId)) {
+            return BigDecimal.ZERO;
+        }
+
         LeaveBalance balance = leaveBalanceRepository.findByUserIdAndLeaveTypeIdForUpdate(userId, leaveTypeId)
                 .orElseGet(() -> leaveBalanceRepository.save(LeaveBalance.builder()
                         .userId(userId)
@@ -61,6 +65,10 @@ public class LeaveBalanceService {
     public BigDecimal releaseReservation(Long userId, Long leaveTypeId, BigDecimal releasedDays, Long actorUserId, Long requestId) {
         validateRequestedDays(releasedDays);
 
+        if (Long.valueOf(3L).equals(leaveTypeId)) {
+            return BigDecimal.ZERO;
+        }
+
         LeaveBalance balance = leaveBalanceRepository.findByUserIdAndLeaveTypeIdForUpdate(userId, leaveTypeId)
                 .orElseThrow(() -> new IllegalArgumentException("BALANCE_NOT_FOUND"));
 
@@ -89,6 +97,10 @@ public class LeaveBalanceService {
     @Transactional
     public BigDecimal finalizeApprovedReservation(Long userId, Long leaveTypeId, BigDecimal approvedDays, Long actorUserId, Long requestId) {
         validateRequestedDays(approvedDays);
+
+        if (Long.valueOf(3L).equals(leaveTypeId)) {
+            return BigDecimal.ZERO;
+        }
 
         LeaveBalance balance = leaveBalanceRepository.findByUserIdAndLeaveTypeIdForUpdate(userId, leaveTypeId)
                 .orElseThrow(() -> new IllegalArgumentException("BALANCE_NOT_FOUND"));

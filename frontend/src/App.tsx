@@ -659,8 +659,14 @@ function LeaveRequestModal({ open, onCancel, onSuccess }: { open: boolean; onCan
   const [submitting, setSubmitting] = useState(false)
   const [availableBalance, setAvailableBalance] = useState(12)
 
+  const isUnpaid = leaveType === '3'
+
   useEffect(() => {
     if (open) {
+      if (leaveType === '3') {
+        setAvailableBalance(999)
+        return
+      }
       apiFetch('/leaves/balances')
         .then((res) => res.json())
         .then((data) => {
@@ -681,8 +687,11 @@ function LeaveRequestModal({ open, onCancel, onSuccess }: { open: boolean; onCan
     return calculateEstimatedLeaveDays(start, end, shift)
   }, [range, shift])
 
-  const hasConflict = estimatedDays > availableBalance * 0.7
-  const isDisabled = !range[0] || !range[1] || !reason.trim() || estimatedDays > availableBalance || submitting
+  const isOverBalance = !isUnpaid && estimatedDays > availableBalance
+  const isMissingDates = !range[0] || !range[1]
+  const isMissingReason = !reason.trim()
+  const hasConflict = !isUnpaid && estimatedDays > availableBalance * 0.7 && !isOverBalance
+  const isDisabled = isMissingDates || isMissingReason || isOverBalance || submitting
 
   const handleSubmit = async () => {
     if (!range[0] || !range[1]) return
@@ -741,13 +750,13 @@ function LeaveRequestModal({ open, onCancel, onSuccess }: { open: boolean; onCan
             options={[
               { value: '1', label: 'Nghỉ phép năm' },
               { value: '2', label: 'Nghỉ ốm' },
-              { value: '3', label: 'Nghỉ không lương' },
+              { value: '3', label: 'Nghỉ không lương (không trừ quỹ phép)' },
               { value: '4', label: 'Nghỉ thai sản' },
             ]}
           />
         </Form.Item>
 
-        <Form.Item label="Khoảng thời gian">
+        <Form.Item label="Khoảng thời gian" required>
           <DatePicker.RangePicker
             style={{ width: '100%' }}
             onChange={(value) => {
@@ -770,7 +779,12 @@ function LeaveRequestModal({ open, onCancel, onSuccess }: { open: boolean; onCan
           </Radio.Group>
         </Form.Item>
 
-        <Form.Item label="Lý do">
+        <Form.Item
+          label="Lý do"
+          required
+          help={isMissingReason && !isMissingDates ? 'Bắt buộc nhập lý do xin nghỉ' : undefined}
+          validateStatus={isMissingReason && !isMissingDates ? 'error' : undefined}
+        >
           <Input.TextArea
             rows={3}
             value={reason}
@@ -786,14 +800,34 @@ function LeaveRequestModal({ open, onCancel, onSuccess }: { open: boolean; onCan
           </div>
           <div>
             <Text type="secondary">Số ngày còn lại</Text>
-            <div className="summary-value">{availableBalance}d</div>
+            <div className="summary-value">{isUnpaid ? 'Không giới hạn' : `${availableBalance}d`}</div>
           </div>
         </div>
+
+        {isOverBalance && (
+          <Alert
+            type="error"
+            showIcon
+            style={{ marginTop: 12 }}
+            title="Vượt quá số ngày phép khả dụng"
+            description={`Bạn xin nghỉ ${estimatedDays} ngày nhưng chỉ còn ${availableBalance} ngày phép năm. Để gửi yêu cầu, vui lòng chọn số ngày nhỏ hơn hoặc đổi loại nghỉ sang "Nghỉ không lương".`}
+          />
+        )}
+
+        {isMissingReason && !isMissingDates && (
+          <Alert
+            type="info"
+            showIcon
+            style={{ marginTop: 12 }}
+            description="Vui lòng điền lý do xin nghỉ để kích hoạt nút 'Gửi yêu cầu'."
+          />
+        )}
 
         {hasConflict && (
           <Alert
             type="warning"
             showIcon
+            style={{ marginTop: 12 }}
             title="Có nguy cơ xung đột lịch làm việc"
             description="Yêu cầu này trùng với nhiều ngày nghỉ của đội. Vui lòng xác nhận với quản lý trước khi gửi."
           />

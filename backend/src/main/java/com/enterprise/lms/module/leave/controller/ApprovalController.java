@@ -37,6 +37,9 @@ public class ApprovalController {
     ) {
         User user = userRepository.findByEmail(principal.getUsername())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "USER_NOT_FOUND"));
+        if (user.getRole() == com.enterprise.lms.module.user.entity.Role.ROLE_HR_ADMIN) {
+            return ResponseEntity.ok(approvalService.getAllPendingApprovals());
+        }
         return ResponseEntity.ok(approvalService.getPendingApprovals(user.getId()));
     }
 

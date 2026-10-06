@@ -22,6 +22,8 @@ public interface LeaveRequestRepository extends JpaRepository<LeaveRequest, Long
 
     List<LeaveRequest> findByAssignedApproverIdAndStatusIn(Long assignedApproverId, Collection<LeaveRequest.Status> statuses);
 
+    List<LeaveRequest> findByStatusIn(Collection<LeaveRequest.Status> statuses);
+
     @Query("SELECT CASE WHEN COUNT(l) > 0 THEN true ELSE false END FROM LeaveRequest l " +
             "WHERE l.userId = :userId AND l.status IN :statuses " +
             "AND l.startDate <= :endDate AND l.endDate >= :startDate")
