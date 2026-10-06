@@ -1,0 +1,32 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: lms-backend
+  profiles:
+    active: dev
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    validate-on-migrate: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info
+  endpoint:
+    health:
+      show-details: always
+
+# JWT configuration — override secret via environment variable APP_JWT_SECRET in production
+app:
+  jwt:
+    secret: "lms-dev-insecure-secret-change-me-in-prod-must-be-at-least-256-bits"
+    access-token-expiry-ms: 1800000   # 30 minutes
+    refresh-token-expiry-ms: 604800000 # 7 days
+  security:
+    max-failed-attempts: 5
+    lockout-duration-minutes: 15

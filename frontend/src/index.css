@@ -1,0 +1,82 @@
+:root {
+  font-family: Inter, 'Segoe UI', sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  font-weight: 400;
+  color: #1c1917;
+  background: #faf9f5;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  --canvas: #faf9f5;
+  --surface: #ffffff;
+  --surface-soft: #fffbeb;
+  --ink: #1c1917;
+  --muted: #6b6358;
+  --primary: #6366f1;
+  --primary-soft: #eef0ff;
+  --accent: #fef3c7;
+  --border: #eadfb9;
+  --success: #10b981;
+  --success-soft: #e6f4ea;
+  --warning: #b45309;
+  --warning-soft: #fef3c7;
+  --danger: #dc3f46;
+  --danger-soft: #fee2e2;
+  --radius-control: 8px;
+  --radius-panel: 12px;
+  --shadow-panel: 0 1px 2px rgb(120 90 20 / 6%), 0 10px 26px -20px rgb(72 55 12 / 24%);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-width: 320px;
+  min-height: 100%;
+  margin: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 88px;
+}
+
+body {
+  min-height: 100vh;
+  background: var(--canvas);
+  color: var(--ink);
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button,
+a,
+input,
+textarea,
+select,
+.ant-select-selector,
+.ant-picker {
+  -webkit-tap-highlight-color: transparent;
+}
+
+:focus-visible {
+  outline: 3px solid rgb(99 102 241 / 35%);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: rgb(99 102 241 / 18%);
+}
