@@ -33,4 +33,13 @@ public interface LeaveRequestRepository extends JpaRepository<LeaveRequest, Long
             @Param("endDate") LocalDate endDate,
             @Param("startDate") LocalDate startDate
     );
+
+    @Query("SELECT l FROM LeaveRequest l WHERE l.userId IN :userIds AND l.status IN :statuses " +
+            "AND l.startDate <= :endDate AND l.endDate >= :startDate")
+    List<LeaveRequest> findTeamSchedule(
+            @Param("userIds") Collection<Long> userIds,
+            @Param("statuses") Collection<LeaveRequest.Status> statuses,
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate
+    );
 }

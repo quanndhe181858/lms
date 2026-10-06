@@ -1006,7 +1006,7 @@ type LeaveScheduleEntry = {
   department: string
   start: string | null
   end: string | null
-  type: 'annual' | 'sick' | 'unpaid' | 'remote'
+  type: 'annual' | 'sick' | 'unpaid' | 'remote' | 'personal'
   status: 'pending' | 'approved'
   reason?: string
 }
@@ -1037,40 +1037,124 @@ const INITIAL_SCHEDULE: LeaveScheduleEntry[] = [
   { memberId: 10, name: 'Hoàng Mai Anh', initials: 'MA', role: 'Chuyên viên Nhân sự', department: 'Phòng Nhân sự', start: '2026-10-14', end: '2026-10-15', type: 'annual', status: 'approved', reason: 'Nghỉ phép năm' },
 ]
 
-function getInitialCalendarMonday(): Date {
-  const target = new Date(2026, 9, 5) // Thứ 2 ngày 05/10/2026 chuẩn theo kịch bản MVP
-  const day = target.getDay()
-  const offset = (day + 6) % 7
-  target.setDate(target.getDate() - offset)
-  target.setHours(0, 0, 0, 0)
-  return target
+function getCurrentMonday(): Date {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const day = today.getDay()
+  const offset = (day + 6) % 7 // Monday = 0
+  today.setDate(today.getDate() - offset)
+  return today
 }
 
 function TeamCalendarPage() {
   const { user } = useAuth()
-  const [calendarStart, setCalendarStart] = useState<Date>(getInitialCalendarMonday)
+  const [calendarStart, setCalendarStart] = useState<Date>(getCurrentMonday)
   const isHrOrManager = user?.role === 'HR' || user?.role === 'MANAGER'
   const [selectedDept, setSelectedDept] = useState<string>(() => {
     if (user?.role === 'HR') return 'ALL'
-    return 'Phòng Kỹ thuật'
+    return user?.department || 'ALL'
   })
 
-  // Đọc danh sách nhân sự từ storage hoặc default
-  const [members] = useState<TeamMember[]>(() => {
-    const saved = localStorage.getItem('lms_company_members')
-    if (saved) {
-      try { return JSON.parse(saved) } catch { /* ignore */ }
-    }
-    return INITIAL_MEMBERS
-  })
+  // Real data from backend
+  const [members, setMembers] = useState<TeamMember[]>([])
+  const [schedules, setSchedules] = useState<LeaveScheduleEntry[]>([])
+  const [loadingMembers, setLoadingMembers] = useState(false)
+  const [loadingSchedule, setLoadingSchedule] = useState(false)
 
-  const [schedules] = useState<LeaveScheduleEntry[]>(() => {
-    const saved = localStorage.getItem('lms_company_schedules')
-    if (saved) {
-      try { return JSON.parse(saved) } catch { /* ignore */ }
+  // Sinh 10 ngày làm việc (Thứ 2 đến Thứ 6 trong 2 tuần liên tiếp)
+  const scheduleDays = useMemo(() => {
+    const days: Date[] = []
+    const cursor = new Date(calendarStart)
+    cursor.setHours(0, 0, 0, 0)
+    while (days.length < 10) {
+      const wd = cursor.getDay()
+      if (wd !== 0 && wd !== 6) {
+        days.push(new Date(cursor))
+      }
+      cursor.setDate(cursor.getDate() + 1)
     }
-    return INITIAL_SCHEDULE
-  })
+    return days
+  }, [calendarStart])
+
+  // Fetch team members once on mount
+  useEffect(() => {
+    setLoadingMembers(true)
+    apiFetch('/leaves/team-members')
+      .then((res) => res.ok ? res.json() : [])
+      .then((data: any[]) => {
+        const mapped: TeamMember[] = data.map((u: any) => {
+          const nameParts = u.fullName.trim().split(' ')
+          const initials = nameParts.length > 1
+            ? `${nameParts[0][0]}${nameParts[nameParts.length - 1][0]}`.toUpperCase()
+            : u.fullName.slice(0, 2).toUpperCase()
+          return {
+            id: u.id,
+            name: u.fullName,
+            initials,
+            role: u.role === 'ROLE_MANAGER' ? 'Quản lý' : u.role === 'ROLE_HR_ADMIN' ? 'Nhân sự' : 'Nhân viên',
+            department: u.department || 'Chung',
+            employmentStatus: u.employmentStatus === 'PROBATION' ? 'PROBATION' : 'PERMANENT',
+            status: u.active ? 'Hoạt động' : 'Nghỉ việc',
+          }
+        })
+        setMembers(mapped)
+      })
+      .catch(console.error)
+      .finally(() => setLoadingMembers(false))
+  }, [])
+
+  // Fetch team schedule when date window changes
+  useEffect(() => {
+    if (scheduleDays.length === 0) return
+    const startStr = formatIsoDate(scheduleDays[0])
+    const endStr = formatIsoDate(scheduleDays[scheduleDays.length - 1])
+    setLoadingSchedule(true)
+    apiFetch(`/leaves/team-schedule?start=${startStr}&end=${endStr}`)
+      .then((res) => res.ok ? res.json() : [])
+      .then((data: any[]) => {
+        const mapped: LeaveScheduleEntry[] = data.map((r: any) => {
+          // Determine leave type label from leaveTypeId
+          const typeMap: Record<number, LeaveScheduleEntry['type']> = {
+            1: 'annual',
+            2: 'sick',
+            3: 'personal',  // unpaid → personal (grey bar)
+            4: 'sick',      // maternity → sick (orange bar)
+          }
+          const statusMap: Record<string, LeaveScheduleEntry['status']> = {
+            SUBMITTED: 'pending',
+            ESCALATED: 'pending',
+            APPROVED: 'approved',
+          }
+          // Find matching member name
+          const memberMatch = members.find((m) => m.id === r.userId)
+          const name = memberMatch?.name || `User #${r.userId}`
+          const initials = memberMatch?.initials || String(r.userId)
+          const role = memberMatch?.role || ''
+          const department = memberMatch?.department || ''
+          return {
+            memberId: r.userId,
+            name,
+            initials,
+            role,
+            department,
+            start: r.startDate,
+            end: r.endDate,
+            type: typeMap[r.leaveTypeId] ?? 'annual',
+            status: statusMap[r.status] ?? 'pending',
+            reason: r.reason,
+          }
+        })
+        setSchedules(mapped)
+      })
+      .catch(console.error)
+      .finally(() => setLoadingSchedule(false))
+  }, [scheduleDays, members])
+
+  // Unique departments from members
+  const departments = useMemo(() => {
+    const depts = new Set(members.map((m) => m.department))
+    return Array.from(depts)
+  }, [members])
 
   // Lọc thành viên theo phòng ban lựa chọn
   const filteredMembers = useMemo(() => {
@@ -1084,7 +1168,7 @@ function TeamCalendarPage() {
   // Lập danh sách lịch làm việc tương ứng thành viên
   const visibleSchedule = useMemo(() => {
     return filteredMembers.map((member) => {
-      const match = schedules.find((s) => s.memberId === member.id || s.name === member.name)
+      const match = schedules.find((s) => s.memberId === member.id)
       if (match) {
         return {
           ...match,
@@ -1105,21 +1189,6 @@ function TeamCalendarPage() {
       }
     })
   }, [filteredMembers, schedules])
-
-  // Sinh 10 ngày làm việc (Thứ 2 đến Thứ 6 trong 2 tuần liên tiếp)
-  const scheduleDays = useMemo(() => {
-    const days: Date[] = []
-    const cursor = new Date(calendarStart)
-    cursor.setHours(0, 0, 0, 0)
-    while (days.length < 10) {
-      const wd = cursor.getDay()
-      if (wd !== 0 && wd !== 6) {
-        days.push(new Date(cursor))
-      }
-      cursor.setDate(cursor.getDate() + 1)
-    }
-    return days
-  }, [calendarStart])
 
   const dateFormatter = useMemo(() => new Intl.DateTimeFormat('vi-VN', { day: '2-digit', month: '2-digit' }), [])
   const weekdayLabels = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7']
@@ -1151,10 +1220,11 @@ function TeamCalendarPage() {
   }
 
   const showCurrentWeek = () => {
-    setCalendarStart(getInitialCalendarMonday())
+    setCalendarStart(getCurrentMonday())
   }
 
   const departmentTitle = selectedDept === 'ALL' ? 'Toàn công ty' : selectedDept
+  const isLoading = loadingMembers || loadingSchedule
 
   return (
     <section className="team-calendar-card schedule-panel" aria-labelledby="team-calendar-title">
@@ -1162,7 +1232,7 @@ function TeamCalendarPage() {
         <div className="schedule-heading">
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <h1 id="team-calendar-title">Lịch nhóm</h1>
-            {user?.role === 'HR' && (
+            {user?.role === 'HR' && departments.length > 0 && (
               <Select
                 size="small"
                 value={selectedDept}
@@ -1170,12 +1240,11 @@ function TeamCalendarPage() {
                 style={{ width: 170 }}
                 options={[
                   { value: 'ALL', label: 'Toàn đơn vị (HR)' },
-                  { value: 'Phòng Kỹ thuật', label: 'Phòng Kỹ thuật' },
-                  { value: 'Phòng Nhân sự', label: 'Phòng Nhân sự' },
-                  { value: 'Phòng Vận hành', label: 'Phòng Vận hành' },
+                  ...departments.map((d) => ({ value: d, label: d })),
                 ]}
               />
             )}
+            {isLoading && <Text type="secondary" style={{ fontSize: 12 }}>Đang tải...</Text>}
           </div>
           <p>{departmentTitle} · {windowLabel} · {filteredMembers.length} nhân sự</p>
         </div>
@@ -1273,6 +1342,7 @@ function TeamCalendarPage() {
     </section>
   )
 }
+
 
 function PeoplePage() {
   const [members, setMembers] = useState<TeamMember[]>(() => {
